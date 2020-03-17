@@ -81,9 +81,5 @@ function mailReport()
     global $email_report;
 
     $headers="From: alex@yardfreaks.com\r\nReply-To: alex@yardfreaks.com";
-    #mail('xandermorales@gmail.com','inventory report',$email_report,$headers);
-    mail('alex@yardfreaks.com','inventory report',$email_report,$headers);
-    mail('jack@yardfreaks.com','inventory report',$email_report,$headers);
-    mail('bailey@yardfreaks.com','inventory report',$email_report,$headers);
-    mail('inv@yardfreaks.com','inventory report',$email_report,$headers);
+    mail('send@report-here.com','inventory report',$email_report,$headers);
 }
