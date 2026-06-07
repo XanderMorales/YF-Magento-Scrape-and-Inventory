@@ -1,1 +1,69 @@
-Example cron/command line executed code for Inventory Updated & Price Scraping for Magento 1.
+# Magento Inventory Update Script
+
+## Overview
+
+This command-line PHP script updates Magento product inventory from a CSV file.
+
+It is designed to run automatically from a root cron job every 5 minutes. The script only performs an inventory update when a trigger file exists, which prevents it from running unnecessarily.
+
+## Cron Schedule
+
+```bash
+*/5 * * * * /opt/plesk/php/5.6/bin/php -d memory_limit=128M -f /var/www/vhosts/yardfreaks.com/httpdocs/DEV/inventory_command.php
+```
+
+## How It Works
+
+The script checks for two files:
+
+```text
+/var/yfteam/_INVENTORY_UPDATES/run.txt
+/var/yfteam/_INVENTORY_UPDATES/inventory.csv
+```
+
+If both files exist:
+
+1. The script deletes `run.txt` so the update only runs once.
+2. It opens `inventory.csv`.
+3. Each row is read as:
+
+   * Column A: SKU
+   * Column B: Inventory quantity
+4. Magento loads the product by SKU.
+5. If the product exists and stock management is enabled:
+
+   * Quantity is updated.
+   * Products with quantity greater than `0` are marked in stock.
+   * Products with quantity `0` are marked out of stock.
+6. An email report is sent after processing.
+
+## CSV Format
+
+The CSV should not include a header row.
+
+Example:
+
+```csv
+ABC-123,10
+XYZ-456,0
+TEST-SKU,25
+```
+
+## Email Report
+
+After the update completes, the script emails a report showing which SKUs were updated and which SKUs were not found.
+
+## Notes
+
+This script is intended to be executed from the command line only, not from a browser.
+
+The second section of the file, related to Google Shopping price scraping, is disabled by an `exit();` statement and does not run as part of the inventory update process.
+
+## Requirements
+
+* PHP 5.6
+* Magento 1
+* Server access to Magento’s `Mage.php`
+* Valid inventory CSV file
+* Cron access
+* Mail configured on the server
