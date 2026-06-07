@@ -1,57 +1,78 @@
 # Magento Inventory Sync
 
-Legacy Magento 1 command-line script for updating product inventory from a CSV file.
+Legacy Magento 1 command-line script for importing product inventory from a CSV file.
 
-The script runs from cron every 5 minutes, but only processes inventory when a trigger file exists.
+The script is designed to run from cron every 5 minutes. It does not update inventory on every cron run. Instead, it waits for a trigger file named `run.txt`.
+
+When both `run.txt` and `inventory.csv` exist, the script processes the CSV, updates Magento stock quantities, updates stock status, and sends an email report.
+
+## Purpose
+
+This script was used to automate inventory updates for a Magento 1 store.
+
+It allows inventory data to be dropped onto the server as a CSV file, then safely imported into Magento without manually running the script each time.
+
+## Files
+
+The script checks for these files:
+
+- `var/yfteam/_INVENTORY_UPDATES/run.txt`
+- `var/yfteam/_INVENTORY_UPDATES/inventory.csv`
+
+`run.txt` acts as the trigger file.
+
+`inventory.csv` contains the inventory data.
 
 ## Workflow
 
-1. An inventory CSV is placed on the server.
-2. A `run.txt` trigger file is created.
-3. Cron executes `inventory_command.php`.
-4. The script deletes `run.txt` to prevent duplicate imports.
-5. Product quantities are updated in Magento.
-6. Products with quantity `0` are marked out of stock.
-7. A processing report is emailed.
+1. Cron runs the script every 5 minutes.
+2. The script checks for `run.txt` and `inventory.csv`.
+3. If both files exist, `run.txt` is deleted.
+4. The script reads `inventory.csv`.
+5. Each SKU is looked up in Magento.
+6. Product inventory quantity is updated.
+7. Products with quantity greater than `0` are marked in stock.
+8. Products with quantity `0` are marked out of stock.
+9. An email report is sent after processing.
 
-## Cron
-
-```bash
-*/5 * * * * /opt/plesk/php/5.6/bin/php -d memory_limit=128M -f /var/www/vhosts/yardfreaks.com/httpdocs/DEV/inventory_command.php
-```
-
-## Input Files
-
-```text
-/var/yfteam/_INVENTORY_UPDATES/run.txt
-/var/yfteam/_INVENTORY_UPDATES/inventory.csv
-```
+Deleting `run.txt` before processing prevents the same inventory file from being imported repeatedly.
 
 ## CSV Format
 
-The CSV file has no header row.
+The CSV file should not include a header row.
 
-```csv
-SKU,Quantity
-ABC123,15
-XYZ999,0
-```
+Column A is the product SKU.
+
+Column B is the inventory quantity.
+
+Example:
+
+ABC123,15  
+XYZ999,0  
+TEST-SKU,42
+
+## Cron Example
+
+*/5 * * * * /opt/plesk/php/5.6/bin/php -d memory_limit=128M -f /var/www/vhosts/yardfreaks.com/httpdocs/DEV/inventory_command.php
 
 ## Behavior
 
-- Updates Magento stock quantity by SKU.
-- Marks products with quantity greater than `0` as in stock.
-- Marks products with quantity `0` as out of stock.
-- Skips products that are missing or do not have stock management enabled.
-- Sends an email report after processing.
+- If quantity is greater than `0`, the product is marked in stock.
+- If quantity is `0`, the product is marked out of stock.
+- If the SKU is not found, it is added to the email report.
+- If Magento stock management is disabled for the product, the product is skipped.
+- After the script finishes, a report email is sent.
 
-## Environment
+## Requirements
 
 - Magento 1
 - PHP 5.6
 - Linux cron
-- Plesk server environment
+- Server access to Magento's `Mage.php`
+- Mail configured on the server
 
 ## Notes
 
-The lower Google Shopping scraping section in this file is disabled by `exit();` and does not run as part of the inventory sync.
+This script is intended to run from the command line, not from a browser.
+
+The lower Google Shopping scraping section in the file is disabled by `exit();` and does not run as part of the inventory update process.
